@@ -17,7 +17,7 @@ OPTION psf_version = 3.0;
 
 BEGIN driver axi_bram_ctrl
 
-  OPTION supported_peripherals = (axi_bram_ctrl);
+  OPTION supported_peripherals = (xilinx.com:ip:axi_bram_ctrl:4.1);
   OPTION supported_os_types = (DTS);
   OPTION driver_state = ACTIVE;
   OPTION NAME = axi_bram_ctrl;
