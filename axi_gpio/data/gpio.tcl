@@ -27,6 +27,10 @@ proc generate {drv_handle} {
 	if {$node == 0} {
 		return
 	}
+	# **FeNN** get UIO name
+	set value [ps_node_mapping $drv_handle label]
+	hsi::utils::add_new_dts_param "${node}" "linux,uio-name" $value string
+	# **FeNN** always use generic-ui
 	set compatible [list "generic-uio"]
 	set_drv_prop $drv_handle compatible "$compatible" stringlist
 	set intr_present [get_property CONFIG.C_INTERRUPT_PRESENT [get_cells -hier $drv_handle]]
