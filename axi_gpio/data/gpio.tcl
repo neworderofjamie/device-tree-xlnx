@@ -27,8 +27,7 @@ proc generate {drv_handle} {
 	if {$node == 0} {
 		return
 	}
-	set compatible [get_comp_str $drv_handle]
-	set compatible [append compatible " " "generic-uio"]
+	set compatible [list "generic-uio"]
 	set_drv_prop $drv_handle compatible "$compatible" stringlist
 	set intr_present [get_property CONFIG.C_INTERRUPT_PRESENT [get_cells -hier $drv_handle]]
 	if {[string match $intr_present "1"]} {
