@@ -14,5 +14,6 @@
 #
 
 proc generate {drv_handle} {
+    puts "AXI BRAM CONTROLLER GENERATE"
     hsi::utils::dt_copy_params_from_ip $drv_handle "compatible"
 }
