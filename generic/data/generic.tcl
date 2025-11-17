@@ -33,11 +33,20 @@ proc generate {drv_handle} {
 		}
 		
 		# Get the name of the current IP instance
-        set ip_name [hsi::get_property IP_NAME $drv_handle]
+		set ip [get_cells -hier $drv_handle]
+        set ip_name [get_property IP_NAME $ip]
 
-        # Check if the IP name indicates an AXI BRAM controller
-        if {[string match "axi_bram_ctrl" $ip_name]} {
+        # Check if the IP name indicates an AXI BRAM controller or FeNN DMA controller
+        if {[string match "axi_bram_ctrl" $ip_name] || [string match "dm_cmd_and_fsm" $ip_name]} {
             puts "Info: Applying generic-uio compatible string for $ip_name"
+            
+            # Set compatibility
+            set compatible [list "generic-uio"]
+            set_drv_prop $drv_handle compatible "$compatible" stringlist
+            
+            # Add uio-name
+            set value [ps_node_mapping $drv_handle label]
+            hsi::utils::add_new_dts_param "${generic_node}" "linux,uio-name" $value string
         }
 	}
 }
