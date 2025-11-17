@@ -31,5 +31,13 @@ proc generate {drv_handle} {
 		if {$last != -1} {
 			hsi::utils::add_new_dts_param "${generic_node}" "/* This is a place holder node for a custom IP, user may need to update the entries */" "" comment
 		}
+		
+		# Get the name of the current IP instance
+        set ip_name [hsi::get_property IP_NAME $drv_handle]
+
+        # Check if the IP name indicates an AXI BRAM controller
+        if {[string match "axi_bram_ctrl" $ip_name]} {
+            puts "Info: Applying generic-uio compatible string for $ip_name"
+        }
 	}
 }
