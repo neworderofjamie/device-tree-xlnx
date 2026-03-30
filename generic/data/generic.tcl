@@ -37,7 +37,7 @@ proc generate {drv_handle} {
         set ip_name [get_property IP_NAME $ip]
 
         # Check if the IP name indicates an AXI BRAM controller or FeNN DMA controller
-        if {[string match "axi_bram_ctrl" $ip_name] || [string match "dm_cmd_and_fsm" $ip_name] || [string match "axis_tkeep_handler" $ip_name] || [string match "event_stream_smart_tracker" $ip_name] || [string match "mipi_csi2_rx_subsystem" $ip_name]} {
+        if {[string match "axi_bram_ctrl" $ip_name] || [string match "dm_cmd_and_fsm" $ip_name] || [string match "axis_tkeep_handler" $ip_name] || [string match "event_stream_smart_tracker" $ip_name]} {
             puts "Info: Applying generic-uio compatible string for $ip_name"
             
             # Set compatibility
