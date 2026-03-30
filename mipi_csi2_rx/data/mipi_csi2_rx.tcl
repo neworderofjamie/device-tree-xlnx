@@ -25,13 +25,9 @@ proc generate {drv_handle} {
 	if {$node == 0} {
 		return
 	}
-	
-	# Add uio-name
-    set value [ps_node_mapping $drv_handle label]
-    hsi::utils::add_new_dts_param "${node}" "linux,uio-name" $value string
 
 	set compatible [get_comp_str $drv_handle]
-	set compatible [append compatible " " "xlnx,mipi-csi2-rx-subsystem-5.0,generic-uio"]
+	set compatible [append compatible " " "xlnx,mipi-csi2-rx-subsystem-5.0"]
 	set_drv_prop $drv_handle compatible "$compatible" stringlist
 	set dphy_en_reg_if [get_property CONFIG.DPY_EN_REG_IF [get_cells -hier $drv_handle]]
 	if {[string match -nocase $dphy_en_reg_if "true"]} {
