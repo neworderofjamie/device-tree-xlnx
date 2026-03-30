@@ -31,8 +31,7 @@ proc generate {drv_handle} {
     hsi::utils::add_new_dts_param "${node}" "linux,uio-name" $value string
 
 	set compatible [get_comp_str $drv_handle]
-	set compatible [append compatible " " "xlnx,mipi-csi2-rx-subsystem-5.0"]
-	set compatible [append compatible " " "generic-uio"]
+	set compatible [append compatible " " "xlnx,mipi-csi2-rx-subsystem-5.0,generic-uio"]
 	set_drv_prop $drv_handle compatible "$compatible" stringlist
 	set dphy_en_reg_if [get_property CONFIG.DPY_EN_REG_IF [get_cells -hier $drv_handle]]
 	if {[string match -nocase $dphy_en_reg_if "true"]} {
@@ -119,8 +118,7 @@ proc generate {drv_handle} {
 				set base [string tolower [get_property BASE_VALUE $ip_mem_handles]]
 				set csi_rx_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
 				gen_endpoint $drv_handle "mipi_csirx_out$drv_handle"
-				#**YUCK** no idea why this is incorrect - hsi::utils::add_new_dts_param "$csi_rx_node" "remote-endpoint" $ip$drv_handle reference
-				hsi::utils::add_new_dts_param "$csi_rx_node" "remote-endpoint" $ip reference
+				hsi::utils::add_new_dts_param "$csi_rx_node" "remote-endpoint" $ip$drv_handle reference
 				gen_remoteendpoint $drv_handle $ip$drv_handle
 				if {[string match -nocase [get_property IP_NAME $ip] "v_frmbuf_wr"]} {
                                         gen_frmbuf_node $ip $drv_handle
