@@ -25,9 +25,13 @@ proc generate {drv_handle} {
 	if {$node == 0} {
 		return
 	}
+	
+	# Add uio-name
+    set value [ps_node_mapping $drv_handle label]
+    hsi::utils::add_new_dts_param "${node}" "linux,uio-name" $value string
 
 	set compatible [get_comp_str $drv_handle]
-	set compatible [append compatible " " "xlnx,mipi-csi2-rx-subsystem-5.0"]
+	set compatible [append compatible " " "generic-uio"]
 	set_drv_prop $drv_handle compatible "$compatible" stringlist
 	set dphy_en_reg_if [get_property CONFIG.DPY_EN_REG_IF [get_cells -hier $drv_handle]]
 	if {[string match -nocase $dphy_en_reg_if "true"]} {
@@ -74,79 +78,79 @@ proc generate {drv_handle} {
 	set axis_tdata_width [get_property CONFIG.AXIS_TDATA_WIDTH [get_cells -hier $drv_handle]]
 	hsi::utils::add_new_dts_param "${node}" "xlnx,axis-tdata-width" "$axis_tdata_width" int
 
-	set ports_node [add_or_get_dt_node -n "ports" -l mipi_csi_ports$drv_handle -p $node]
-	hsi::utils::add_new_dts_param "$ports_node" "#address-cells" 1 int
-	hsi::utils::add_new_dts_param "$ports_node" "#size-cells" 0 int
-	set port_node [add_or_get_dt_node -n "port" -l mipi_csi_port1$drv_handle -u 1 -p $ports_node]
-	hsi::utils::add_new_dts_param "$port_node" "reg" 1 int
-
-	set port0_node [add_or_get_dt_node -n "port" -l mipi_csi_port0$drv_handle -u 0 -p $ports_node]
-	hsi::utils::add_new_dts_param "$port0_node" "reg" 0 int
-	hsi::utils::add_new_dts_param "${port0_node}" "/* User need to add something like remote-endpoint=<&out> under the node csiss_in:endpoint */" "" comment
-	set csiss_rx_node [add_or_get_dt_node -n "endpoint" -l mipi_csi_in$drv_handle -p $port0_node]
-	if {[llength $lanes]} {
-		hsi::utils::add_new_dts_param "${csiss_rx_node}" "data-lanes" $lanes int
-	}
-
-	set outip [get_connected_stream_ip [get_cells -hier $drv_handle] "VIDEO_OUT"]
-	if {[llength $outip]} {
-		if {[string match -nocase [get_property IP_NAME $outip] "axis_broadcaster"]} {
-			set mipi_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
-			gen_endpoint $drv_handle "mipi_csirx_out$drv_handle"
-			hsi::utils::add_new_dts_param "$mipi_node" "remote-endpoint" $outip$drv_handle reference
-			gen_remoteendpoint $drv_handle "$outip$drv_handle"
-		}
-		if {[string match -nocase [get_property IP_NAME $outip] "axis_switch"]} {
-			set ip_mem_handles [hsi::utils::get_ip_mem_ranges $outip]
-			if {[llength $ip_mem_handles]} {
-				set mipi_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
-				gen_axis_switch_in_endpoint $drv_handle "mipi_csirx_out$drv_handle"
-				hsi::utils::add_new_dts_param "$mipi_node" "remote-endpoint" $outip$drv_handle reference
-				gen_axis_switch_in_remo_endpoint $drv_handle "$outip$drv_handle"
-			}
-		}
-	}
-	foreach ip $outip {
-		if {[llength $ip]} {
-			set intfpins [::hsi::get_intf_pins -of_objects [get_cells -hier $ip] -filter {TYPE==MASTER || TYPE ==INITIATOR}]
-			set ip_mem_handles [hsi::utils::get_ip_mem_ranges $ip]
-			if {[llength $ip_mem_handles]} {
-				set base [string tolower [get_property BASE_VALUE $ip_mem_handles]]
-				set csi_rx_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
-				gen_endpoint $drv_handle "mipi_csirx_out$drv_handle"
-				hsi::utils::add_new_dts_param "$csi_rx_node" "remote-endpoint" $ip$drv_handle reference
-				gen_remoteendpoint $drv_handle $ip$drv_handle
-				if {[string match -nocase [get_property IP_NAME $ip] "v_frmbuf_wr"]} {
-                                        gen_frmbuf_node $ip $drv_handle
-                                }
-			} else {
-				set connectip [get_connect_ip $ip $intfpins]
-				if {[llength $connectip]} {
-					if {[string match -nocase [get_property IP_NAME $connectip] "axis_switch"]} {
-						set ip_mem_handles [hsi::utils::get_ip_mem_ranges $connectip]
-						if {[llength $ip_mem_handles]} {
-							set mipi_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
-							gen_axis_switch_in_endpoint $drv_handle "mipi_csirx_out$drv_handle"
-							hsi::utils::add_new_dts_param "$mipi_node" "remote-endpoint" $connectip$drv_handle reference
-							gen_axis_switch_in_remo_endpoint $drv_handle "$connectip$drv_handle"
-						}
-
-					} elseif {[string match -nocase [get_property IP_NAME $connectip] "ISPPipeline_accel"]} {
-						set isppipeline_node [add_or_get_dt_node -n "endpoint" -l isppipeline_in$connectip -p $port_node]
-						hsi::utils::add_new_dts_param "$isppipeline_node" "remote-endpoint" $connectip$drv_handle reference
-
-					} else {
-					set csi_rx_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
-					gen_endpoint $drv_handle "mipi_csirx_out$drv_handle"
-					hsi::utils::add_new_dts_param "$csi_rx_node" "remote-endpoint" $connectip$drv_handle reference
-					gen_remoteendpoint $drv_handle $connectip$drv_handle
-					if {[string match -nocase [get_property IP_NAME $connectip] "v_frmbuf_wr"]} {
-						gen_frmbuf_node $connectip $drv_handle
-					}
-				}
-			}
-		}
-	}
+# 	set ports_node [add_or_get_dt_node -n "ports" -l mipi_csi_ports$drv_handle -p $node]
+# 	hsi::utils::add_new_dts_param "$ports_node" "#address-cells" 1 int
+# 	hsi::utils::add_new_dts_param "$ports_node" "#size-cells" 0 int
+# 	set port_node [add_or_get_dt_node -n "port" -l mipi_csi_port1$drv_handle -u 1 -p $ports_node]
+# 	hsi::utils::add_new_dts_param "$port_node" "reg" 1 int
+# 
+# 	set port0_node [add_or_get_dt_node -n "port" -l mipi_csi_port0$drv_handle -u 0 -p $ports_node]
+# 	hsi::utils::add_new_dts_param "$port0_node" "reg" 0 int
+# 	hsi::utils::add_new_dts_param "${port0_node}" "/* User need to add something like remote-endpoint=<&out> under the node csiss_in:endpoint */" "" comment
+# 	set csiss_rx_node [add_or_get_dt_node -n "endpoint" -l mipi_csi_in$drv_handle -p $port0_node]
+# 	if {[llength $lanes]} {
+# 		hsi::utils::add_new_dts_param "${csiss_rx_node}" "data-lanes" $lanes int
+# 	}
+# 
+# 	set outip [get_connected_stream_ip [get_cells -hier $drv_handle] "VIDEO_OUT"]
+# 	if {[llength $outip]} {
+# 		if {[string match -nocase [get_property IP_NAME $outip] "axis_broadcaster"]} {
+# 			set mipi_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
+# 			gen_endpoint $drv_handle "mipi_csirx_out$drv_handle"
+# 			hsi::utils::add_new_dts_param "$mipi_node" "remote-endpoint" $outip$drv_handle reference
+# 			gen_remoteendpoint $drv_handle "$outip$drv_handle"
+# 		}
+# 		if {[string match -nocase [get_property IP_NAME $outip] "axis_switch"]} {
+# 			set ip_mem_handles [hsi::utils::get_ip_mem_ranges $outip]
+# 			if {[llength $ip_mem_handles]} {
+# 				set mipi_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
+# 				gen_axis_switch_in_endpoint $drv_handle "mipi_csirx_out$drv_handle"
+# 				hsi::utils::add_new_dts_param "$mipi_node" "remote-endpoint" $outip$drv_handle reference
+# 				gen_axis_switch_in_remo_endpoint $drv_handle "$outip$drv_handle"
+# 			}
+# 		}
+# 	}
+# 	foreach ip $outip {
+# 		if {[llength $ip]} {
+# 			set intfpins [::hsi::get_intf_pins -of_objects [get_cells -hier $ip] -filter {TYPE==MASTER || TYPE ==INITIATOR}]
+# 			set ip_mem_handles [hsi::utils::get_ip_mem_ranges $ip]
+# 			if {[llength $ip_mem_handles]} {
+# 				set base [string tolower [get_property BASE_VALUE $ip_mem_handles]]
+# 				set csi_rx_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
+# 				gen_endpoint $drv_handle "mipi_csirx_out$drv_handle"
+# 				hsi::utils::add_new_dts_param "$csi_rx_node" "remote-endpoint" $ip$drv_handle reference
+# 				gen_remoteendpoint $drv_handle $ip$drv_handle
+# 				if {[string match -nocase [get_property IP_NAME $ip] "v_frmbuf_wr"]} {
+#                                         gen_frmbuf_node $ip $drv_handle
+#                                 }
+# 			} else {
+# 				set connectip [get_connect_ip $ip $intfpins]
+# 				if {[llength $connectip]} {
+# 					if {[string match -nocase [get_property IP_NAME $connectip] "axis_switch"]} {
+# 						set ip_mem_handles [hsi::utils::get_ip_mem_ranges $connectip]
+# 						if {[llength $ip_mem_handles]} {
+# 							set mipi_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
+# 							gen_axis_switch_in_endpoint $drv_handle "mipi_csirx_out$drv_handle"
+# 							hsi::utils::add_new_dts_param "$mipi_node" "remote-endpoint" $connectip$drv_handle reference
+# 							gen_axis_switch_in_remo_endpoint $drv_handle "$connectip$drv_handle"
+# 						}
+# 
+# 					} elseif {[string match -nocase [get_property IP_NAME $connectip] "ISPPipeline_accel"]} {
+# 						set isppipeline_node [add_or_get_dt_node -n "endpoint" -l isppipeline_in$connectip -p $port_node]
+# 						hsi::utils::add_new_dts_param "$isppipeline_node" "remote-endpoint" $connectip$drv_handle reference
+# 
+# 					} else {
+# 					set csi_rx_node [add_or_get_dt_node -n "endpoint" -l mipi_csirx_out$drv_handle -p $port_node]
+# 					gen_endpoint $drv_handle "mipi_csirx_out$drv_handle"
+# 					hsi::utils::add_new_dts_param "$csi_rx_node" "remote-endpoint" $connectip$drv_handle reference
+# 					gen_remoteendpoint $drv_handle $connectip$drv_handle
+# 					if {[string match -nocase [get_property IP_NAME $connectip] "v_frmbuf_wr"]} {
+# 						gen_frmbuf_node $connectip $drv_handle
+# 					}
+# 				}
+# 			}
+# 		}
+# 	}
 	}
 	gen_gpio_reset $drv_handle $node
 }
