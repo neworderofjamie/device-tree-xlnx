@@ -151,7 +151,7 @@ proc generate {drv_handle} {
 # 			}
 # 		}
 # 	}
-	}
+#	}
 	gen_gpio_reset $drv_handle $node
 }
 
